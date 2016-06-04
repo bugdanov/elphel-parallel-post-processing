@@ -88,6 +88,7 @@ OPTIONS SUMMARY:
     -b,--black <black point>       set black point
     -w,--white <white point>       set white point
     -q,--quality <quality>         set jpeg quality
+    -e,--eqrformat <format>        set EQR format (RGB24 INT16 INT32 FLOAT32)
 
 EXAMPLES:
 
@@ -112,7 +113,7 @@ init() {
   [ $# -lt 1 ] && usage -h
 
   # parse command line options
-  if ! options=$(getopt -o hsrflb:w:q:o:p:m: -l help,shuffle,black:,white:,quality:,run,filelist:,logdir:,output:,parallel:method: -- "$@")
+  if ! options=$(getopt -o hsrflb:w:g:q:o:p:m:e: -l help,shuffle,black:,white:,gamma:,quality:,run,filelist:,logdir:,output:,parallel:method:eqrformat: -- "$@")
   then
       # something went wrong, getopt will put out an error message for us
       exit 1
@@ -126,6 +127,7 @@ init() {
       -s|--shuffle) SHUFFLE="yes" ;;
       -b|--black) BLACKPOINT=$2 ; shift ;;
       -w|--white) WHITEPOINT=$2 ; shift ;;
+      -g|--gamma) GAMMA=$2 ; shift ;;
       -q|--quality) QUALITY=$2 ; shift ;;
       -r|--run) RUN=yes ;;
       -f|--filelist) FILELIST=$2 ; shift ;;
@@ -133,6 +135,7 @@ init() {
       -p|--paralell) export PARALLEL="$2" ; shift ;;
       -m|--method)  METHOD=$2 ; shift ;;
       -o|--output) OUTPUT=$2 ; shift ;;
+      -e|--eqrformat) EQRFORMAT=$2 ; shift ;;
       (--) shift; break ;;
       (-*) echo "$(basename $0): error - unrecognized option $1" 1>&2; exit 1 ;;
       (*) break ;;
@@ -151,8 +154,17 @@ init() {
 
   # default values
   [ -z "$QUALITY" ] && QUALITY=98
+  [ -z "$EQRFORMAT" ] && EQRFORMAT=INT16
   [ -z "$BLACKPOINT" ] && BLACKPOINT=0
-  [ -z "$WHITEPOINT" ] && WHITEPOINT=100
+  if [ -z "$WHITEPOINT" ] ; then
+    echo "$(basename $0): warning - you should set --white point manually" ;
+    case $EQRFORMAT in
+      RGB24) WHITEPOINT=100 ;;
+      INT16) WHITEPOINT=25 ;;
+      *) WHITEPOINT=100 ;;
+    esac
+  fi
+  [ -z "$GAMMA" ] && GAMMA=1
   [ -z "$METHOD" ] && METHOD=enblend
 
   # current timestamp
@@ -201,7 +213,7 @@ main() {
 
   init "$@"
 
-  echo "#!$PBANG --gnu -I _TIMESTAMP_ --ungroup --joblog $LOGDIR/$(basename $OUTPUT).log --bf $REMOTESCRIPT --bf $REMOTELOGGER $REMOTESCRIPT $SRCDIR $DSTDIR _TIMESTAMP_ -q $QUALITY -b ${BLACKPOINT} -w ${WHITEPOINT} -m ${METHOD} \\\\\\\\| $REMOTELOGGER $OUTPUT" | tee "$OUTPUT"
+  echo "#!$PBANG --gnu -I _TIMESTAMP_ --ungroup --joblog $LOGDIR/$(basename $OUTPUT).log --bf $REMOTESCRIPT --bf $REMOTELOGGER $REMOTESCRIPT $SRCDIR $DSTDIR _TIMESTAMP_ -q $QUALITY -b ${BLACKPOINT} -w ${WHITEPOINT} -m ${METHOD} -e ${EQRFORMAT} \\\\\\\\| $REMOTELOGGER $OUTPUT" | tee "$OUTPUT"
   chmod +x "$OUTPUT"
 
   if [ "$RUN" == "true" -o "$RUN" == "yes" ] ; then
@@ -221,7 +233,7 @@ main() {
 
 listUnprocessedTimestamps() {
   listTimestamps | while read TIMESTAMP ; do
-    [ -s "$DSTDIR/result_${TIMESTAMP}-0-25-1.jpeg" ] || echo $TIMESTAMP
+    [ -s "$DSTDIR/result_${TIMESTAMP}-$BLACKPOINT-$WHITEPOINT-$GAMMA.jpeg" ] || echo $TIMESTAMP
   done
 }
 

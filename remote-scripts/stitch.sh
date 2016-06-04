@@ -59,15 +59,17 @@ OPTIONS SUMMARY:
     -h,--help                       display this
     -b,--black <black point>        set black point
     -w,--white <white point>        set white point
+    -g,--gamma <gamma>              set gamma
     -q,--quality <quality>          set jpeg quality
     -m,--method enblend|multiblend  set blending method
     -j,--nojpeg                     disable jpeg conversion
+    -e,--eqrformat                  EQR format (RGB24 INT16 INT32 FLOAT32)
 EOF
   exit 1
 }
 
 # parse command line options
-if ! options=$(getopt -o hb:w:q:m:j -l help,black:,white:,quality:,method:,nojpeg -- "$@")
+if ! options=$(getopt -o hb:w:g:q:m:je: -l help,black:,white:,gamma:,quality:,method:,nojpeg,eqrformat: -- "$@")
 then
     # something went wrong, getopt will put out an error message for us
     exit 1
@@ -80,9 +82,11 @@ while [ $# -gt 0 ] ; do
     -h|--help) usage $1 ;;
     -b|--black) BLACKPOINT=$2 ; shift ;;
     -w|--white) WHITEPOINT=$2 ; shift ;;
+    -g|--gamma) GAMMA=$2 ; shift ;;
     -q|--quality) QUALITY=$2 ; shift ;;
     -m|--method) METHOD=$2 ; shift ;;
     -j|--nojpeg) NOJPEG=1; shift ;;
+    -e|--eqrformat) EQRFORMAT=$2; shift ;;
     (--) shift; break ;;
     (-*) echo "$(basename $0): error - unrecognized option $1" 1>&2; exit 1 ;;
     (*) break ;;
@@ -103,8 +107,16 @@ TIMESTAMP=$3
 # default values
 [ -z "$QUALITY" ] && QUALITY=98
 [ -z "$GAMMA" ] && GAMMA=1
-[ -z "$WHITEPOINT" ] && WHITEPOINT=100
+[ -z "$EQRFORMAT" ] && EQRFORMAT=INT16
 [ -z "$BLACKPOINT" ] && BLACKPOINT=0
+if [ -z "$WHITEPOINT" ] ; then
+  echo "$(basename $0): warning - you should set --white point manually" ;
+  case $EQRFORMAT in
+    RBG24) WHITEPOINT=100 ;;                                                                                         
+    INT16) WHITEPOINT=25 ;;                                                                                         
+    *) WHITEPOINT=100 ;;
+  esac
+fi
 [ -z "$METHOD" ] && METHOD=enblend
 
 # initialisation
@@ -124,37 +136,38 @@ multiblend)
 {
      set -e
      multiblend --wideblend --nocrop -o $TMP/result_${t}.tif \
-        $SRCDIR/${t}-04-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-05-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-06-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-07-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-00-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-01-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-02-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-03-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-04-DECONV-RGB24_EQR-LEFT.tiff \
-        $SRCDIR/${t}-12-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-13-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-14-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-15-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-08-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-09-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-10-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-11-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-12-DECONV-RGB24_EQR-LEFT.tiff \
-        $SRCDIR/${t}-20-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-21-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-22-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-23-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-16-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-17-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-18-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-19-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-20-DECONV-RGB24_EQR-LEFT.tiff
+        $SRCDIR/${t}-04-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-05-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-06-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-07-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-00-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-01-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-02-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-03-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-04-DECONV-${EQRFORMAT}_EQR-LEFT.tiff \
+        $SRCDIR/${t}-12-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-13-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-14-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-15-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-08-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-09-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-10-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-11-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-12-DECONV-${EQRFORMAT}_EQR-LEFT.tiff \
+        $SRCDIR/${t}-20-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-21-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-22-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-23-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-16-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-17-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-18-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-19-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-20-DECONV-${EQRFORMAT}_EQR-LEFT.tiff
 
      if [ -z "$NOJPEG" ] ; then
-       convert $TMP/result_${t}.tif -level $LEVELS -quality $QUALITY $TMP/result_${t}-0-25-1.jpeg
-       mv $TMP/result_${t}-0-25-1.jpeg $DSTDIR/result_${t}-0-25-1.jpeg
+       OUTFILE=result_${t}-$BLACKPOINT-$WHITEPOINT-$GAMMA.jpeg
+       convert $TMP/result_${t}.tif -level $LEVELS -quality $QUALITY $TMP/$OUTFILE
+       mv $TMP/$OUTFILE $DSTDIR/$OUTFILE
      fi
 
      mv $TMP/result_${t}.tif $DSTDIR/result_${t}.tif
@@ -168,37 +181,37 @@ enblend)
 {
      set -e
      enblend-mp -w -o $TMP/result_${t}_top.tif \
-        $SRCDIR/${t}-04-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-05-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-06-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-07-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-00-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-01-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-02-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-03-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-04-DECONV-RGB24_EQR-LEFT.tiff
+        $SRCDIR/${t}-04-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-05-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-06-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-07-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-00-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-01-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-02-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-03-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-04-DECONV-${EQRFORMAT}_EQR-LEFT.tiff
      
      enblend-mp -w -o $TMP/result_${t}_mid.tif \
-        $SRCDIR/${t}-12-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-13-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-14-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-15-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-08-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-09-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-10-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-11-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-12-DECONV-RGB24_EQR-LEFT.tiff
+        $SRCDIR/${t}-12-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-13-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-14-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-15-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-08-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-09-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-10-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-11-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-12-DECONV-${EQRFORMAT}_EQR-LEFT.tiff
 
      enblend-mp -w -o $TMP/result_${t}_bot.tif \
-        $SRCDIR/${t}-20-DECONV-RGB24_EQR-RIGHT.tiff \
-        $SRCDIR/${t}-21-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-22-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-23-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-16-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-17-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-18-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-19-DECONV-RGB24_EQR.tiff \
-        $SRCDIR/${t}-20-DECONV-RGB24_EQR-LEFT.tiff
+        $SRCDIR/${t}-20-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff \
+        $SRCDIR/${t}-21-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-22-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-23-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-16-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-17-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-18-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-19-DECONV-${EQRFORMAT}_EQR.tiff \
+        $SRCDIR/${t}-20-DECONV-${EQRFORMAT}_EQR-LEFT.tiff
 
      enblend-mp --wrap='vertical' -o $TMP/result_${t}.tif \
         $TMP/result_${t}_top.tif \
@@ -208,8 +221,9 @@ enblend)
      rm $TMP/result_${t}_{top,mid,bot}.tif
 
      if [ -z "$NOJPEG" ] ; then
-       convert $TMP/result_${t}.tif -level $LEVELS -quality $QUALITY $TMP/result_${t}-0-25-1.jpeg
-       mv $TMP/result_${t}-0-25-1.jpeg $DSTDIR/
+       OUTFILE=result_${t}-$BLACKPOINT-$WHITEPOINT-$GAMMA.jpeg
+       convert $TMP/result_${t}.tif -level $LEVELS -quality $QUALITY $TMP/$OUTFILE
+       mv $TMP/$OUTFILE $DSTDIR/
      fi
 
      mv $TMP/result_${t}.tif $DSTDIR/     

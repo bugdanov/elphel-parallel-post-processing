@@ -41,13 +41,12 @@ set -e
 # check whether timestamp already processed
 checkeqrcount() {
   EQRCOUNT=0
-  HALFEQRCOUNT=0
   for ((i=0; i<$SUBCAMERAS; ++i)) ; do
     CHAN=$(printf %02d $i)
     # find is too slow, use test instead
-    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-RGB24_EQR.tiff && ((++EQRCOUNT))
-    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-RGB24_EQR-LEFT.tiff &&
-    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-RGB24_EQR-RIGHT.tiff && ((++EQRCOUNT))
+    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-${EQRFORMAT}_EQR.tiff && ((++EQRCOUNT))
+    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-${EQRFORMAT}_EQR-LEFT.tiff &&
+    test -e $DESTDIR/${TIMESTAMP}-${CHAN}-DECONV-${EQRFORMAT}_EQR-RIGHT.tiff && ((++EQRCOUNT))
   done
   test $EQRCOUNT == $SUBCAMERAS
 }
@@ -65,6 +64,10 @@ IMAGEJ_ELPHEL_XML="$1"
 MEM="$2"
 [ -z "$MEM" ] && MEM="7150m"
 
+EQRFORMAT_LIST=(RGB24 INT16 INT32 FLOAT32 IJSTACK)
+EQRFORMAT_INDEX=$(grep CORRECTION_PARAMETERS.equirectangularFormat $IMAGEJ_ELPHEL_XML | sed -r -e 's/.*>([^<]+).*/\1/')
+EQRFORMAT=${EQRFORMAT_LIST[EQRFORMAT_INDEX]}
+
 DESTDIR=$(grep CORRECTION_PARAMETERS.resultsDirectory $IMAGEJ_ELPHEL_XML | sed -r -e 's/.*>([^<]+).*/\1/')
 BASE=$(basename $IMAGEJ_ELPHEL_XML)
 TIMESTAMP=${BASE:11:17}
@@ -72,7 +75,10 @@ TIMESTAMP=${BASE:11:17}
 # TODO: pass SUBCAMERAS in post_processing generated shebang, from XML property CAMERAS.channelMap.length
 SUBCAMERAS=$(grep CAMERAS.channelMap.length $IMAGEJ_ELPHEL_XML | sed -r -e 's/.*>([^<]+).*/\1/')
 
+[ -z "$SUBCAMERAS" ] && SUBCAMERAS=26
+
 # assume there's only 1 timestamp in the XML
+# TODO: maybe the name of the XML should match the last timestamp listed in the XML
 echo check whether $TIMESTAMP is already processed
 if checkeqrcount ; then
   echo already processed: $TIMESTAMP
@@ -84,7 +90,7 @@ $FIJI --headless --allow-multiple --mem $MEM --run Eyesis_Correction prefs=$IMAG
 
 echo check whether $TIMESTAMP has been thoroughly processed
 if ! checkeqrcount ; then
-  echo ERROR: $((EQRCOUNT+HALFEQRCOUNT/2))/$SUBCAMERAS channels have been processed for $TIMESTAMP
+  echo ERROR: $EQRCOUNT/$SUBCAMERAS channels have been processed for $TIMESTAMP
   exit 240
 fi
 
